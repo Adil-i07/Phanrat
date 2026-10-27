@@ -1,3 +1,5 @@
+// ถ้าโฮสต์ส่งหน้าหลักมาให้ตอนเข้า /edit หรือ #/edit ให้ส่งต่อไปหน้าแอดมิน
+if(/\/edit\/?$/.test(location.pathname)||location.hash.startsWith("#/edit")){location.replace("/edit/index.html")}
 let D,S={},isSample=false;const app=$('#app');
 const cats=a=>[...new Set(a.map(x=>x.category||x.type).filter(Boolean))];
 const pcard=p=>`<a class="card" href="#/project/${esc(p.id)}">${img(p.cover,p.title,'cover')}<div class="pad"><div class="row">${pill(p.status)}<span class="muted">${esc(p.category)}</span></div><h3>${esc(p.title)}</h3><p>${esc(p.summary)}</p>${bar(p.progress)}<div class="row"><b>${Number(p.progress)||0}%</b><span class="muted">เริ่ม ${fmt(p.startDate)} · อัปเดต ${fmt(p.updatedAt)}</span></div></div></a>`;
@@ -35,6 +37,32 @@ function business(id){const b=D.businesses.find(x=>x.id===id);if(!b){app.innerHT
  app.innerHTML=`<div class="wrap pv"><a class="back" href="#/businesses">← ธุรกิจและร้านค้า</a>${img(b.cover,b.name,'cover big')}
  <div class="bh">${img(b.logo,b.name,'logo')}<div><span class="pill">${esc(b.status)}</span> <span class="muted">${esc(b.type)}</span><h1 style="margin:0">${esc(b.name)}</h1></div></div>
  <p class="lead">${esc(b.summary)}</p><p class="pre">${esc(b.description)}</p>
+ ${b.location||b.contact?`<dl style="max-width:420px">${b.location?`<dt>ที่ตั้ง</dt><dd>${esc(b.location)}</dd>`:''}${b.contact?`<dt>ติดต่อ</dt><dd>${esc(b.contact)}</dd>`:''}</dl>`:''}
+ <h2>สินค้าและบริการ</h2>${grid(pr,prodCard)||'<div class="empty muted">ยังไม่มีรายการสินค้าและบริการ</div>'}</div>`}
+function about(){const L=t=>String(t||'').split('\n').filter(Boolean),d=L(S.about_departments);
+ app.innerHTML=`<div class="wrap pv"><h1>เกี่ยวกับพันรัฐ</h1><p class="lead">${esc(S.company_note)}</p>
+ ${img(S.hq_image,S.hq_name||'สำนักงาน','cover big')}
+ <h2>ประวัติความเป็นมา</h2><p class="pre">${esc(S.about_history)}</p><h2>วิสัยทัศน์และการดำเนินธุรกิจ</h2><p class="pre">${esc(S.about_vision)}</p>
+ <h2>สำนักงานใหญ่</h2><p><b>${esc(S.hq_name)}</b><br>${esc(S.hq_address)}</p><p class="pre">${esc(S.hq_text)}</p>
+ ${d.length?`<h2>ส่วนงานของบริษัท</h2><div class="chips">${d.map(x=>`<span class="chip">${esc(x)}</span>`).join('')}</div>`:''}
+ <h2>ธุรกิจในเครือ</h2>${grid(D.businesses,bcard)||'<p class="muted">ยังไม่มีข้อมูล</p>'}
+ <h2>กิจกรรมของบริษัท</h2><p class="pre">${esc(S.about_activities)}</p></div>`}
+function route(){const[h,qs]=(location.hash||'#/').slice(2).split('?'),[pg,id]=h.split('/'),q=new URLSearchParams(qs||'');
+ const m={'':home,projects:()=>projects(q),project:()=>project(id),businesses,business:()=>business(id),about}[pg];
+ if(m){if(pg==='')app.innerHTML=home();else m()}else app.innerHTML=nf();
+ if(pg==='')bindHome();
+ document.querySelectorAll('#nv a').forEach(a=>a.classList.toggle('on',pg.startsWith(a.dataset.k)));
+ $('#nv').classList.remove('open');scrollTo(0,0)}
+function bindHome(){const f=$('#hs');if(f)f.onsubmit=e=>{e.preventDefault();location.hash='#/projects?q='+encodeURIComponent(f.q.value)}}
+app.addEventListener('click',e=>{const c=e.target.closest('[data-p]');if(!c)return;const s=D.products.find(x=>x.id===c.dataset.p),b=D.businesses.find(x=>x.id===s.businessId)||{};
+ const d=document.createElement('dialog');d.innerHTML=`${img(s.image,s.name,'cover')}<div class="dp"><span class="muted">${esc(s.kind)} · ${esc(b.name)}</span><h2>${esc(s.name)}</h2><p><b>${esc(s.price)||'สอบถามราคา'}</b></p><p class="pre">${esc(s.description)}</p><div class="ac"><a class="btn o" href="#/business/${esc(b.id)}">ดูธุรกิจ</a><button class="btn" data-x>ปิด</button></div></div>`;
+ d.onclick=ev=>{if(ev.target===d||ev.target.dataset.x!==undefined||ev.target.closest('a')){d.close();d.remove()}};document.body.appendChild(d);d.showModal()});
+$('#mb').onclick=()=>$('#nv').classList.toggle('open');
+async function init(){try{if(!API)throw 0;const j=await(await fetch(API+'?t='+Date.now())).json();if(!j.ok)throw 0;D=j.data}catch(e){D=SAMPLE;isSample=true}
+ $('#sample').hidden=!isSample;S=Object.fromEntries(D.settings.map(r=>[r.key,r.value]));
+ $('#ft').innerHTML=`<div><h3>พันรัฐ</h3><p class="muted">${esc(S.company_note||S.tagline||'')}</p><p>${esc(S.phone)} ${esc(S.email)}</p></div><div><h3>เมนู</h3><a href="#/projects">โครงการ</a><a href="#/businesses">ธุรกิจและร้านค้า</a><a href="#/about">เกี่ยวกับเรา</a></div><div><h3>สำนักงาน</h3><p>${esc(S.hq_name)}<br>${esc(S.hq_address)}</p></div>`;
+ addEventListener('hashchange',route);route()}
+init(); <p class="lead">${esc(b.summary)}</p><p class="pre">${esc(b.description)}</p>
  ${b.location||b.contact?`<dl style="max-width:420px">${b.location?`<dt>ที่ตั้ง</dt><dd>${esc(b.location)}</dd>`:''}${b.contact?`<dt>ติดต่อ</dt><dd>${esc(b.contact)}</dd>`:''}</dl>`:''}
  <h2>สินค้าและบริการ</h2>${grid(pr,prodCard)||'<div class="empty muted">ยังไม่มีรายการสินค้าและบริการ</div>'}</div>`}
 function about(){const L=t=>String(t||'').split('\n').filter(Boolean),d=L(S.about_departments);
